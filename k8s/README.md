@@ -9,21 +9,21 @@ You need the following on your system, or to be working in an environment with a
 
 ## Files
 
-### _00-2-secret.yaml_
+### _00-secret.yaml_
 - **Needed** to store username and password for database
 ### _01-role.yaml_
 - Needed for assigning a role to access the secrets
 ### _02-role-binding.yaml_
 - **Needed** for role assignment to secrets
-### _03-kafka.yaml_
+### _03-kafka-zookeeper.yaml_
 - **Needed** in part - Zookeeper is required for Kafka Connect, Kafka nodes may not be needed (but could be used for internal topics not required for streaming data)
-### _07-mssql.yaml_
+### _04-mssql.yaml_
 - **Not needed**, this was for testing and SQL Server won't be hosted in k8s!
-### _07-01-mssql-service.yaml_
+### _05-mssql-service.yaml_
 - **Not needed**, exposes the (not needed) SQL Server pod (for Kafka Connect)
-### _08-mssql-connect.yaml_
+### _06-connect-cluster.yaml_
 - **Needed**, hosts the Debezium libraries for shifting CDC records
-### _09-dbz-mssql-connect.yaml_
+### _07connector.yaml_
 - **Needed** as it specifies what to move (database and table specficiations, along with Kafka topics)
 
 ## Setup with _minikube_ and _kubectl_
@@ -35,16 +35,16 @@ You need the following on your system, or to be working in an environment with a
 - Create k8s namespace
   - `kubectl create namespace dbz`
 - Install secrets
-  - `kubectl apply -n dbz -f 00-2-secret.yaml`
+  - `kubectl apply -n dbz -f 00-secret.yaml`
   - this makes secrets secure in the cluster and accessible (but not human-readable) by other objects
 - Protect the secret by assigning a role
   - `kubectl apply -n dbz -f 01-role.yaml`
 - Bind the role to the connect service so kafka connect can read it (to access the database being monitored)
   - `kubectl apply -n dbz -f 02-role-binding.yaml`
 - Create a kafka and zookeeper deployment; this is a CRD file of type Kafka
-  - `kubectl apply -n dbz -f 03-kafka.yaml`
+  - `kubectl apply -n dbz -f 03-kafka-zookeeper.yaml`
 - Create a SQL Server instance and create a database and table that you can monitor
-  - `kubectl apply -n dbz -f 07-mssql.yaml`
+  - `kubectl apply -n dbz -f 04-mssql.yaml`
   - Either open a shell and do some sql or run a file inside the pod...describe one of these (TODO: test the latter)
   - Include some record creation, don't forget to turn on cdc for the new database and table(s)
   - The connector gets an error if the database in the config is:
@@ -53,13 +53,13 @@ You need the following on your system, or to be working in an environment with a
     - Empty - so create a table
     - Empty of CDC-enabled tables - so enable CDC for whichever tables are in there (at least one before the connector is started)
 - Create a service for SQL Server (TODO: move this into the SQL file) so your connectors can monitor SQL:
-  - `kubectl apply -n dbz -f 07-01-mssql-service.yaml`
+  - `kubectl apply -n dbz -f 05-mssql-service.yaml`
 - Create the kafka connect cluster
-  - `kubectl apply -n dbz -f 08-mssql-connect.yaml`
+  - `kubectl apply -n dbz -f 06-connect-cluster.yaml`
   - The output of this is a docker image (see _Build_ section of yaml file).  Make sure the name of the image is the same as the cluster (I think TODO: check what happens if they're different, I think it didn't work when I made them different).
   - The build can take a while.  There's a pod for the cluster ending in _-build_ while it's building; the cluster won't be in a ready state until that's done and the _-[some letter-spaghetti]_ cluster pod is running and ready.
 - Create the connector that routes CDC records through to kafka
-  - `kubectl apply -n dbz -f 09-dbz-mssql-connect.yaml`
+  - `kubectl apply -n dbz -f 07-connector.yaml`
 
 
 These steps should create the resources to generate (_SQL Server_), route (_Kafka Connect, Zookeeper_) and receive (_Kafka, Zookeeper_) CDC records from SQL Server via Kafka Connect to Kafka.  In an environment where SQL Server or Kafka are external (i.e. production where Kafka services may be provided by [Azure Event Hubs](https://learn.microsoft.com/en-us/azure/event-hubs/azure-event-hubs-kafka-overview) and SQL Server is external) some of these resources can be left out (mssql and mssql service) or modified (kafka can be removed from the kafka file, although Zookeeper is still needed for Kafka Connect).
