@@ -1,0 +1,21 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: my-source-connector
+  labels: 
+    strimzi.io/cluster: my-connect-cluster
+spec:
+  class: io.debezium.connector.sqlserver.SqlServerConnector
+  tasksMax: 1
+  config:
+    tasks.max: 1
+    database.hostname: mssql
+    database.port: 1433
+    database.user: sa
+    database.password: Password!
+    database.names: "inventory"
+    topic.prefix: sqlserver
+    database.include.list: "inventory"
+    database.encrypt: "false"
+    schema.history.internal.kafka.bootstrap.servers: debezium-cluster-kafka-bootstrap:9092
+    schema.history.internal.kafka.topic: schema-changes.mssql.inventory
