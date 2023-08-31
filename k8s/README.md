@@ -23,7 +23,7 @@ You need the following on your system, or to be working in an environment with a
 - **Not needed**, exposes the (not needed) SQL Server pod (for Kafka Connect)
 ### _06-connect-cluster.yaml_
 - **Needed**, hosts the Debezium libraries for shifting CDC records
-### _07connector.yaml_
+### _07-connector.yaml_
 - **Needed** as it specifies what to move (database and table specficiations, along with Kafka topics)
 
 ## Setup with _minikube_ and _kubectl_
